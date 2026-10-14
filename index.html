@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Genetics Contexto</title>
+<style>
+:root{--ink:#172033;--muted:#667085;--line:#e5e7eb;--bg:#f5f7fb;--blue:#3157c8;--blue2:#e9efff;--green:#dff6e8;--yellow:#fff2cc;--orange:#ffe3d2}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:28px 16px 48px}.panel{background:white;border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:0 8px 28px #1c2b4a0a}
+header{text-align:center;margin-bottom:20px}h1{font-size:clamp(2rem,6vw,3rem);letter-spacing:-.04em;margin:0}header p{color:var(--muted);margin:6px 0 0}
+.pill{display:inline-block;border-radius:999px;background:var(--blue2);color:var(--blue);padding:4px 10px;font-size:.8rem;font-weight:700;margin-bottom:10px}
+.notice{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:#475467;font-size:.9rem;margin:16px 0}
+form{display:flex;gap:8px;margin-top:18px}input{min-width:0;flex:1;border:1px solid #cbd5e1;border-radius:12px;padding:13px 14px;font:inherit}button{border:0;border-radius:12px;padding:12px 17px;font:inherit;font-weight:700;cursor:pointer;background:var(--blue);color:white}button:disabled{opacity:.55;cursor:wait}.secondary{background:white;color:var(--ink);border:1px solid var(--line)}
+.status{min-height:24px;color:var(--muted);font-size:.9rem;margin-top:10px}.progress{height:7px;background:#eef1f6;border-radius:99px;overflow:hidden;margin-top:10px}.progress span{display:block;height:100%;width:0;background:var(--blue);transition:width .2s}
+.toprow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:24px}.toprow h2{font-size:1.05rem;margin:0}.count{font-size:.85rem;color:var(--muted)}
+table{border-collapse:collapse;width:100%;margin-top:10px}th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}td.rank{width:78px;font-weight:800}td.score{width:100px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rankchip{display:inline-block;padding:3px 9px;border-radius:8px;background:#f1f5f9}.rank-1{background:var(--green)}.rank-2{background:var(--green)}.rank-3{background:var(--yellow)}
+.footer{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}.small{font-size:.82rem;color:var(--muted);margin-top:18px}.hidden{display:none}
+@media(max-width:520px){.panel{padding:17px}form{flex-direction:column}form button{width:100%}td,th{padding:9px 5px}.score{display:none}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="pill">GENETICS EDITION</div>
+  <h1>Genetics Contexto</h1>
+  <p>Find the hidden genetics-related word by meaning.</p>
+</header>
+<section class="panel">
+  <div class="toprow" style="margin-top:0"><h2>Today's puzzle</h2><span class="count" id="guessCount">0 guesses</span></div>
+  <p id="intro">Load the language model, then start guessing. Closer meanings receive better ranks.</p>
+  <div class="notice" id="modelNotice">The first load downloads a free, open model to your browser. This may take a few minutes. No paid API key is needed.</div>
+  <form id="guessForm">
+    <input id="guessInput" autocomplete="off" placeholder="Enter a condition, symptom, gene, or concept…" disabled />
+    <button id="guessButton" disabled>Guess</button>
+  </form>
+  <div class="status" id="status">Loading the semantic model…</div>
+  <div class="progress"><span id="progressBar"></span></div>
+  <div class="toprow"><h2>Your guesses</h2><button class="secondary" id="newGame" type="button">New puzzle</button></div>
+  <table>
+    <thead><tr><th>Rank</th><th>Guess</th><th class="score">Similarity</th></tr></thead>
+    <tbody id="guessRows"><tr><td colspan="3" style="color:#667085;text-align:center;padding:22px 8px">Your guesses will appear here.</td></tr></tbody>
+  </table>
+  <div class="footer"><button class="secondary" id="showHints" type="button">Show category hint</button><button class="secondary" id="giveUp" type="button">Reveal answer</button></div>
+  <p class="small">Classroom prototype: rankings are generated from semantic embeddings and a genetics vocabulary. They are not medical advice and will not exactly match Contexto's proprietary rankings.</p>
+</section>
+</main>
+<script type="module">
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+env.allowLocalModels = false;
+
+const targets = [
+  {word:'Stickler syndrome', category:'Connective tissue and collagen-related disorder'},
+  {word:'Ehlers-Danlos syndrome', category:'Connective tissue and joint hypermobility disorder'},
+  {word:'Klinefelter syndrome', category:'Sex chromosome condition'},
+  {word:'Noonan syndrome', category:'RAS/MAPK pathway condition'},
+  {word:'Williams syndrome', category:'Chromosomal microdeletion syndrome'},
+  {word:'Cornelia de Lange syndrome', category:'Developmental syndrome associated with the cohesin complex'}
+];
+
+const vocabulary = [
+'Stickler syndrome','Ehlers-Danlos syndrome','Klinefelter syndrome','Noonan syndrome','Williams syndrome','Cornelia de Lange syndrome',
+'joint hypermobility','hypermobile joints','joint dislocation','chronic pain','skin hyperextensibility','fragile skin','tissue fragility','easy bruising',
+'myopia','nearsightedness','retinal detachment','hearing loss','sensorineural hearing loss','cleft palate','Pierre Robin sequence','flat face',
+'collagen','COL2A1','COL5A1','COL11A1','connective tissue','connective tissue disorder','osteoarthritis','scoliosis',
+'47,XXY','sex chromosomes','aneuploidy','extra X chromosome','hypogonadism','infertility','low testosterone','small testes','tall stature','learning difficulties',
+'pulmonary valve stenosis','congenital heart defect','short stature','webbed neck','widely spaced eyes','hypertelorism','pectus excavatum','lymphatic abnormalities',
+'PTPN11','SOS1','RAF1','RAS/MAPK pathway','cardiomyopathy','aortic stenosis','supravalvular aortic stenosis','ELN','7q11.23 deletion','microdeletion',
+'elastin','developmental delay','intellectual disability','distinctive facial features','friendly personality','sound sensitivity','hypercalcemia','spatial difficulties',
+'synophrys','joined eyebrows','long eyelashes','thin upper lip','growth restriction','small hands','small feet','limb differences','gastroesophageal reflux',
+'NIPBL','cohesin complex','chromatin organization','genetic variant','pathogenic variant','gene deletion','duplication','chromosome deletion','frameshift variant',
+'autosomal dominant','autosomal recessive','X-linked','de novo variant','inheritance','penetrance','variable expressivity','mosaicism','chromosome','DNA','gene','protein',
+'genetic testing','chromosomal microarray','karyotype','exome sequencing','family history','congenital','birth defect','developmental differences','speech delay',
+'hypotonia','seizures','feeding difficulties','strabismus','vision problems','joint pain','long fingers','hyperextensible skin','cardiac defect','genetics',
+'Marfan syndrome','Loeys-Dietz syndrome','osteogenesis imperfecta','Turner syndrome','fragile X syndrome','Kabuki syndrome','Sotos syndrome','CHARGE syndrome',
+'collagen disorder','chromosomal condition','sex chromosome aneuploidy','developmental syndrome','genetic syndrome','short fingers','high myopia','mitral valve prolapse',
+'low muscle tone','delayed puberty','reproductive health','growth delay','hearing impairment','skeletal features','heart murmur','renal anomalies','behavioral differences'
+];
+
+const $ = id => document.getElementById(id);
+let extractor, target, targetVector, candidateVectors = new Map(), vocabularyScores = [], guesses = [], answerFound = false;
+
+function clean(s){return s.trim().replace(/\s+/g,' ')}
+function cosine(a,b){let dot=0,aa=0,bb=0;for(let i=0;i<a.length;i++){dot+=a[i]*b[i];aa+=a[i]*a[i];bb+=b[i]*b[i]}return dot/(Math.sqrt(aa)*Math.sqrt(bb)||1)}
+async function embed(text){
+  const out = await extractor(text, { pooling:'mean', normalize:true });
+  return out.data;
+}
+function setStatus(s){$('status').textContent=s}
+function setProgress(p){$('progressBar').style.width=`${Math.max(0,Math.min(100,p))}%`}
+function render(){
+  $('guessCount').textContent=`${guesses.length} ${guesses.length===1?'guess':'guesses'}`;
+  const body=$('guessRows'); body.innerHTML='';
+  if(!guesses.length){body.innerHTML='<tr><td colspan="3" style="color:#667085;text-align:center;padding:22px 8px">Your guesses will appear here.</td></tr>';return}
+  guesses.sort((a,b)=>a.rank-b.rank);
+  guesses.forEach((g)=>{
+    const tr=document.createElement('tr');
+    const rank=g.rank; let cls=rank===1?'rank-1':rank<=3?'rank-2':rank<=8?'rank-3':'';
+    tr.innerHTML=`<td class="rank"><span class="rankchip ${cls}">#${rank}</span></td><td></td><td class="score">${g.sim.toFixed(3)}</td>`;
+    tr.children[1].textContent=g.word; body.appendChild(tr);
+  });
+}
+function startGame(){
+  target=targets[Math.floor(Math.random()*targets.length)];
+  guesses=[];answerFound=false;render();
+  $('intro').textContent='Guess words related to the hidden condition or clinical concept.';
+  $('showHints').textContent='Show category hint';
+  $('guessInput').disabled=!extractor;$('guessButton').disabled=!extractor;
+  setStatus(extractor?'Ready when you are.':'Loading model…');
+}
+async function init(){
+  try{
+    extractor=await pipeline('feature-extraction','Xenova/all-MiniLM-L6-v2',{progress_callback:data=>{
+      if(data.status==='progress' && data.total) setProgress(100*data.loaded/data.total);
+      if(data.status==='downloading') setStatus('Downloading model files…');
+      if(data.status==='progress') setStatus('Preparing language model…');
+    }});
+    setStatus('Preparing genetics vocabulary…');
+    const unique=[...new Set([...vocabulary,...targets.map(t=>t.word)])];
+    for(let i=0;i<unique.length;i++){
+      candidateVectors.set(unique[i],await embed(unique[i]));
+      if(i%8===0){setProgress(100*i/unique.length);await new Promise(r=>setTimeout(r,0))}
+    }
+    setProgress(100);
+    $('modelNotice').textContent='Model loaded. Guesses are processed locally in your browser after the model downloads.';
+    $('guessInput').disabled=false;$('guessButton').disabled=false;
+    startGame();$('guessInput').focus();
+  }catch(e){
+    setStatus('Could not load the model. Check your internet connection and refresh this page. Details: '+e.message);
+    $('modelNotice').textContent='The free model could not be loaded. Try opening the published site in a modern browser with an internet connection.';
+  }
+}
+$('guessForm').addEventListener('submit',async e=>{
+  e.preventDefault(); if(!extractor||answerFound)return;
+  const word=clean($('guessInput').value);if(!word)return;
+  if(guesses.some(g=>g.word.toLowerCase()===word.toLowerCase())){setStatus('You already guessed that word. Try another.');return}
+  $('guessButton').disabled=true;setStatus('Scoring your guess…');
+  try{
+    const vec=candidateVectors.get(word)||await embed(word);
+    const sim=cosine(vec,targetVector);
+    const rank=1+vocabularyScores.filter(item=>item.sim>sim+1e-7).length;
+    guesses.push({word,sim,rank});render();
+    if(word.toLowerCase()===target.word.toLowerCase()){
+      answerFound=true;setStatus(`Correct! The answer was ${target.word}. Start a new puzzle to play again.`);
+    }else setStatus('Guess recorded. Try a related symptom, gene, condition, or concept.');
+    $('guessInput').value='';$('guessInput').focus();
+  }catch(err){setStatus('Could not score that guess. Try a different word.')}
+  $('guessButton').disabled=false;
+});
+$('showHints').addEventListener('click',()=>{
+  if(!target)return;
+  $('showHints').textContent=target.category;
+});
+$('giveUp').addEventListener('click',()=>{
+  if(!target)return;answerFound=true;setStatus(`The answer was ${target.word}. Click “New puzzle” to try another.`);
+});
+$('newGame').addEventListener('click',startGame);
+async function selectTargetVector(){
+  // The target embedding is selected at the start of each round.
+}
+const originalStart=startGame;
+startGame=function(){
+  if(!extractor){target=targets[Math.floor(Math.random()*targets.length)];return}
+  target=targets[Math.floor(Math.random()*targets.length)];
+  targetVector=candidateVectors.get(target.word);
+  vocabularyScores=[...new Set([...vocabulary,...targets.map(t=>t.word)])].map(word=>({word,sim:cosine(candidateVectors.get(word),targetVector)}));
+  guesses=[];answerFound=false;render();
+  $('intro').textContent='Guess words related to the hidden condition or clinical concept.';
+  $('showHints').textContent='Show category hint';
+  $('guessInput').disabled=false;$('guessButton').disabled=false;
+  setStatus('Ready when you are.');
+};
+init();
+</script>
+</body>
+</html>
