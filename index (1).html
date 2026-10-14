@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Genetics Contexto</title>
+<style>
+:root{--ink:#172033;--muted:#667085;--line:#e5e7eb;--bg:#f5f7fb;--blue:#3157c8;--blue2:#e9efff;--green:#dff6e8;--yellow:#fff2cc;--orange:#ffe3d2;--red:#ffe4e6}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:780px;margin:0 auto;padding:28px 16px 48px}.panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:0 8px 28px #1c2b4a0a}
+header{text-align:center;margin-bottom:20px}h1{font-size:clamp(2rem,6vw,3rem);letter-spacing:-.04em;margin:0}header p{color:var(--muted);margin:6px 0 0}.pill{display:inline-block;border-radius:999px;background:var(--blue2);color:var(--blue);padding:4px 10px;font-size:.8rem;font-weight:700;margin-bottom:10px}
+.notice{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:#475467;font-size:.9rem;margin:16px 0}
+form{display:flex;gap:8px;margin-top:18px}input{min-width:0;flex:1;border:1px solid #cbd5e1;border-radius:12px;padding:13px 14px;font:inherit}button{border:0;border-radius:12px;padding:12px 17px;font:inherit;font-weight:700;cursor:pointer;background:var(--blue);color:white}button:disabled{opacity:.55;cursor:wait}.secondary{background:white;color:var(--ink);border:1px solid var(--line)}
+.status{min-height:24px;color:var(--muted);font-size:.9rem;margin-top:10px}.toprow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:24px}.toprow h2{font-size:1.05rem;margin:0}.count{font-size:.85rem;color:var(--muted)}
+table{border-collapse:collapse;width:100%;margin-top:10px}th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}td.rank{width:82px;font-weight:800}td.group{width:170px;color:var(--muted);font-size:.82rem}.rankchip{display:inline-block;padding:3px 9px;border-radius:8px;background:#f1f5f9}.rank-1,.rank-2{background:var(--green)}.rank-3{background:var(--yellow)}.rank-4{background:var(--orange)}.rank-5{background:var(--red)}
+.footer{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}.small{font-size:.82rem;color:var(--muted);margin-top:18px}.legend{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}.legend span{font-size:.78rem;border:1px solid var(--line);border-radius:999px;padding:4px 9px}.legend .l1{background:var(--green)}.legend .l2{background:var(--yellow)}.legend .l3{background:var(--orange)}.legend .l4{background:var(--red)}
+@media(max-width:580px){.panel{padding:17px}form{flex-direction:column}form button{width:100%}td,th{padding:9px 5px}td.group{display:none}}
+</style>
+</head>
+<body><main>
+<header><div class="pill">GENETICS EDITION</div><h1>Genetics Contexto</h1><p>Find the hidden condition by following the genetic clues.</p></header>
+<section class="panel">
+<div class="toprow" style="margin-top:0"><h2>Hidden condition</h2><span class="count" id="guessCount">0 guesses</span></div>
+<p>Guess a gene, symptom, inheritance pattern, chromosome finding, or related condition. Rankings reflect how relevant each term is to the hidden condition.</p>
+<div class="notice" id="notice">This classroom prototype uses curated genetics associations. Rank #1 is the answer; highly characteristic genes and features rank close to the top. Try spelling variants if a term isn't recognized.</div>
+<form id="guessForm"><input id="guessInput" autocomplete="off" placeholder="Try a gene, symptom, or inheritance pattern…"><button id="guessButton">Guess</button></form>
+<div class="status" id="status">Ready when you are.</div>
+<div class="toprow"><h2>Your guesses</h2><button class="secondary" id="newGame" type="button">New puzzle</button></div>
+<div class="legend"><span class="l1">Very strong match</span><span class="l2">Related</span><span class="l3">Some overlap</span><span class="l4">Poor match</span></div>
+<table><thead><tr><th>Rank</th><th>Guess</th><th class="group">Association type</th></tr></thead><tbody id="guessRows"><tr><td colspan="3" style="color:#667085;text-align:center;padding:22px 8px">Your guesses will appear here.</td></tr></tbody></table>
+<div class="footer"><button class="secondary" id="showHints" type="button">Show broad hint</button><button class="secondary" id="reveal" type="button">Reveal answer</button></div>
+<p class="small">Educational prototype, not a diagnostic tool. Some conditions have multiple genetic causes or subtypes; associations shown here are representative, not exhaustive. A real clinical reference should be checked before classroom use.</p>
+</section></main>
+<script>
+const puzzles = [
+ {answer:'Stickler syndrome',hint:'Think connective tissue, eyes, hearing, and collagen.',tiers:[
+  ['COL2A1','COL11A1','COL11A2','COL9A1','COL9A2','COL9A3','collagen','autosomal dominant','myopia','retinal detachment','hearing loss','sensorineural hearing loss','cleft palate','Pierre Robin sequence','early-onset osteoarthritis','vitreous abnormality'],
+  ['joint pain','joint hypermobility','flat midface','high myopia','skeletal differences','spinal abnormalities','autosomal recessive','connective tissue disorder'],
+  ['Ehlers-Danlos syndrome','Marshall syndrome','spondyloepiphyseal dysplasia','osteoarthritis','short stature','vision problems'],
+  ['47,XXY','Klinefelter syndrome','ELN','7q11.23 deletion','Williams syndrome','PTPN11','Noonan syndrome','NIPBL','Cornelia de Lange syndrome','X-linked inheritance','mitochondrial inheritance','trisomy 21']
+ ]},
+ {answer:'Ehlers-Danlos syndrome',hint:'Think connective tissue, joint mobility, skin, and tissue fragility.',tiers:[
+  ['COL5A1','COL5A2','COL3A1','COL1A1','COL1A2','TNXB','PLOD1','FKBP14','ADAMTS2','collagen','connective tissue','joint hypermobility','hypermobile joints','joint dislocations','skin hyperextensibility','tissue fragility','easy bruising'],
+  ['autosomal dominant','chronic pain','soft skin','atrophic scars','wound healing problems','joint instability','vascular fragility','autosomal recessive','hypermobility spectrum disorder'],
+  ['Stickler syndrome','Marfan syndrome','Loeys-Dietz syndrome','osteogenesis imperfecta','joint pain','scoliosis','long fingers'],
+  ['47,XXY','Klinefelter syndrome','ELN deletion','Williams syndrome','PTPN11','Noonan syndrome','NIPBL','Cornelia de Lange syndrome','Y-linked inheritance','trisomy 21']
+ ]},
+ {answer:'Klinefelter syndrome',hint:'Think sex chromosomes, testicular function, and the 47,XXY karyotype.',tiers:[
+  ['47,XXY','extra X chromosome','sex chromosome aneuploidy','karyotype','hypogonadism','small testes','low testosterone','infertility','azoospermia','tall stature'],
+  ['delayed puberty','gynecomastia','sparse facial hair','learning difficulties','language difficulties','reproductive health','usually sporadic','nondisjunction','sex chromosomes'],
+  ['Turner syndrome','47,XXX','47,XYY','sex chromosome condition','delayed speech','osteoporosis'],
+  ['COL2A1','COL5A1','autosomal dominant','autosomal recessive','7q11.23 deletion','Williams syndrome','PTPN11','Noonan syndrome','NIPBL','Cornelia de Lange syndrome','Y-linked inheritance']
+ ]},
+ {answer:'Noonan syndrome',hint:'Think RAS/MAPK signaling, congenital heart disease, and characteristic growth/facial features.',tiers:[
+  ['PTPN11','SOS1','RAF1','RIT1','KRAS','LZTR1','SHOC2','RAS/MAPK pathway','pulmonary valve stenosis','hypertrophic cardiomyopathy','short stature','webbed neck','widely spaced eyes'],
+  ['congenital heart defect','pectus excavatum','low-set ears','lymphatic abnormalities','bleeding tendency','cryptorchidism','autosomal dominant','de novo variant','variable expressivity'],
+  ['Cardiofaciocutaneous syndrome','Costello syndrome','LEOPARD syndrome','Turner syndrome','developmental delay','feeding difficulties'],
+  ['COL2A1','COL5A1','47,XXY','Klinefelter syndrome','ELN deletion','Williams syndrome','NIPBL','Cornelia de Lange syndrome','autosomal recessive as a universal pattern','Y-linked inheritance']
+ ]},
+ {answer:'Williams syndrome',hint:'Think a recurrent chromosome 7 deletion, elastin, and cardiovascular features.',tiers:[
+  ['7q11.23 deletion','ELN','elastin','chromosomal microdeletion','supravalvular aortic stenosis','hypercalcemia','distinctive facial features','spatial construction difficulties'],
+  ['developmental delay','cardiovascular disease','friendly and social personality profile','sound sensitivity','feeding difficulties','connective tissue features','usually de novo deletion','chromosomal microarray'],
+  ['Noonan syndrome','22q11.2 deletion syndrome','Smith-Magenis syndrome','developmental differences','heart murmur','hypotonia'],
+  ['COL2A1','COL5A1','47,XXY','Klinefelter syndrome','PTPN11 as the typical cause','NIPBL','Cornelia de Lange syndrome','autosomal recessive as the usual cause','Y-linked inheritance']
+ ]},
+ {answer:'Cornelia de Lange syndrome',hint:'Think cohesin complex, growth/development, and characteristic facial and limb features.',tiers:[
+  ['NIPBL','SMC1A','SMC3','RAD21','HDAC8','BRD4','cohesin complex','synophrys','arched eyebrows','long eyelashes','growth restriction','limb differences'],
+  ['developmental delay','intellectual disability','small hands','small feet','feeding difficulties','gastroesophageal reflux','hearing loss','microcephaly','de novo pathogenic variant','autosomal dominant','X-linked inheritance for some gene-associated forms'],
+  ['Roberts syndrome','Kabuki syndrome','Brachmann-de Lange syndrome','developmental syndrome','short stature','speech delay'],
+  ['COL2A1','COL5A1','47,XXY','Klinefelter syndrome','ELN deletion','Williams syndrome','PTPN11 as the typical cause','autosomal recessive as a universal pattern','Y-linked inheritance']
+ ]}
+];
+const tiersLabels=['Highly characteristic gene, mechanism, or feature','Strong clinical/genetic association','Related or overlapping condition/feature','Poor match or contrasting association'];
+const norm=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+let puzzle, guesses=[];
+function pickPuzzle(){puzzle=puzzles[Math.floor(Math.random()*puzzles.length)];guesses=[];render();$('status').textContent='Ready when you are.';$('guessInput').value='';$('showHints').textContent='Show broad hint';$('guessInput').focus()}
+function allTerms(){let arr=[puzzle.answer];puzzle.tiers.forEach(t=>arr.push(...t));return [...new Set(arr)]}
+function getTermRank(word){
+ const n=norm(word), answer=norm(puzzle.answer);
+ if(n===answer)return {rank:1,type:'Correct answer'};
+ for(let i=0;i<puzzle.tiers.length;i++){
+   if(puzzle.tiers[i].some(x=>norm(x)===n)) return {rank:2+i,type:tiersLabels[i]};
+ }
+ // unknown guesses remain valid but are conservatively ranked as weak associations
+ return {rank: 6 + Math.floor((1-Math.min(n.length,30)/30)*2),type:'Not in curated association list'};
+}
+function render(){
+ $('guessCount').textContent=`${guesses.length} ${guesses.length===1?'guess':'guesses'}`;
+ const body=$('guessRows');body.innerHTML='';
+ if(!guesses.length){body.innerHTML='<tr><td colspan="3" style="color:#667085;text-align:center;padding:22px 8px">Your guesses will appear here.</td></tr>';return}
+ guesses.sort((a,b)=>a.rank-b.rank);
+ guesses.forEach(g=>{const tr=document.createElement('tr');const cls=g.rank===1?'rank-1':g.rank===2?'rank-2':g.rank===3?'rank-3':g.rank===4?'rank-4':'rank-5';tr.innerHTML=`<td class="rank"><span class="rankchip ${cls}">#${g.rank}</span></td><td></td><td class="group"></td>`;tr.children[1].textContent=g.word;tr.children[2].textContent=g.type;body.appendChild(tr)});
+}
+$('guessForm').addEventListener('submit',e=>{e.preventDefault();const word=$('guessInput').value.trim();if(!word)return;if(guesses.some(g=>norm(g.word)===norm(word))){$('status').textContent='You already guessed that. Try another term.';return}
+ const r=getTermRank(word);guesses.push({word,...r});render();$('guessInput').value='';
+ if(r.rank===1)$('status').textContent='Correct! You found the hidden condition. Start a new puzzle to play again.';
+ else if(r.rank<=3)$('status').textContent='Strong association! Use this clue to think of a more specific related term.';
+ else if(r.rank<=5)$('status').textContent='Some overlap. Try a more condition-specific gene, feature, or inheritance pattern.';
+ else $('status').textContent='Not a curated close match. Try a known gene, hallmark feature, or related syndrome.';
+});
+$('showHints').addEventListener('click',()=>{$('showHints').textContent=puzzle.hint});
+$('reveal').addEventListener('click',()=>{$('status').textContent=`The answer was ${puzzle.answer}. Click “New puzzle” to play again.`});
+$('newGame').addEventListener('click',pickPuzzle);
+pickPuzzle();
+</script></body></html>
